@@ -18,12 +18,11 @@
  *  *
  *  
  */
-use std::sync::Arc;
-use std::time::Duration;
-use r2d2::Pool;
+use crate::{BaseDistributedObject, RFairLock, RLock, RLockable, RObject, RObjectBase, RedissonResult, SyncRedisConnectionManager};
 use redis::Commands;
 use serde::Serialize;
-use crate::{BaseDistributedObject, RFairLock, RLock, RLockable, RObject, RObjectBase, RSet, RedissonResult, SyncRedisConnectionManager};
+use std::sync::Arc;
+use std::time::Duration;
 
 // === RSortedSet (Ordered set) ===
 pub struct RSortedSet<V> {

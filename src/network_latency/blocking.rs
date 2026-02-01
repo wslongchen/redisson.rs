@@ -19,11 +19,11 @@
  *  
  */
 
+use crate::network_latency::LatencyStats;
+use parking_lot::Mutex;
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::{Duration, Instant};
-use parking_lot::Mutex;
-use crate::network_latency::LatencyStats;
+use std::time::Duration;
 
 /// Network latency statistics
 pub struct NetworkLatencyStats {

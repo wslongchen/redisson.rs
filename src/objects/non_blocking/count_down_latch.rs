@@ -18,12 +18,10 @@
  *  *
  *  
  */
+use crate::{AsyncBaseDistributedObject, AsyncRFairLock, AsyncRLock, AsyncRLockable, AsyncRObject, AsyncRObjectBase, AsyncRedisConnectionManager, RedissonResult};
+use async_trait::async_trait;
 use std::sync::Arc;
 use std::time::Duration;
-use serde::de::DeserializeOwned;
-use serde::Serialize;
-use async_trait::async_trait;
-use crate::{RedissonResult, AsyncRedisConnectionManager, AsyncRedisConnection, AsyncBaseDistributedObject, AsyncRObject, AsyncRLockable, AsyncRLock, AsyncRFairLock, AsyncRObjectBase, AsyncRBlockingQueue, AsyncRGeo};
 
 
 // === AsyncRCountDownLatch An asynchronous counter ===

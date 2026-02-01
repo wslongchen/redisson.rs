@@ -18,14 +18,13 @@
  *  *
  *  
  */
+use crate::{AsyncCache, AsyncLocalCache, AsyncRedisConnectionManager, CacheStats, RedissonError, RedissonResult};
+use async_trait::async_trait;
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 use std::hash::Hash;
 use std::sync::Arc;
 use std::time::Duration;
-use async_trait::async_trait;
-use parking_lot::RwLock;
-use serde::de::DeserializeOwned;
-use serde::Serialize;
-use crate::{AsyncCache, AsyncLocalCache, AsyncRedisConnectionManager, CacheStats, RedissonError, RedissonResult, SyncRedisConnectionManager};
 
 /// Caching integrated with Redis - asynchronous version
 pub struct AsyncRedisIntegratedCache<K, V> {
@@ -191,7 +190,6 @@ impl<K: Eq + Hash + Clone + Serialize + DeserializeOwned + std::fmt::Debug + Sen
         let stats = Arc::new(tokio::sync::RwLock::new(CacheStats::new()));
 
         let local_cache = AsyncLocalCache::new(
-            cache_name.to_string(),
             ttl,
             max_size,
             stats,

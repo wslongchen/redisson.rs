@@ -253,8 +253,6 @@ impl AsyncRReadLock {
                         lock_count: 1,
                         lock_value: lock_info.value.clone(),
                         last_renew_time: Instant::now(),
-                        thread_id,
-                        watchdog_running: false,
                     },
                 );
                 return Ok(lock_info);
@@ -472,8 +470,6 @@ impl AsyncRWriteLock {
                         lock_count: 1,
                         lock_value: lock_info.value.clone(),
                         last_renew_time: Instant::now(),
-                        thread_id,
-                        watchdog_running: false,
                     },
                 );
                 return Ok(lock_info);

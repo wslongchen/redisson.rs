@@ -18,15 +18,13 @@
  *  *
  *
  */
-use std::collections::VecDeque;
-use std::sync::Arc;
-use std::time::{Duration, Instant};
+use crate::{convert_value_to_batch_result, AsyncBatchProcessor, AsyncRedisConnectionManager, BatchConfig, BatchResult, BatchStats, CommandBuilder, DelCommand, ExpireCommand, GenericCommand, GetCommand, HGetCommand, HSetCommand, IncrByCommand, LPushCommand, RedissonError, RedissonResult, SAddCommand, SetCommand, TransactionConfig, TransactionResult};
 use redis::Value;
 use serde::{Deserialize, Serialize};
-use tokio::sync::{Mutex as TokioMutex, RwLock as TokioRwLock, Notify as TokioNotify, Semaphore as TokioSemaphore};
+use std::sync::Arc;
+use std::time::{Duration, Instant};
 use tokio::time;
 use uuid::Uuid;
-use crate::{convert_value_to_batch_result, AsyncBatchProcessor, AsyncRedisConnectionManager, BatchConfig, BatchResult, BatchStats, CommandBuilder, DelCommand, ExpireCommand, GenericCommand, GetCommand, HGetCommand, HSetCommand, IncrByCommand, LPushCommand, RedissonError, RedissonResult, SAddCommand, SetCommand, TransactionConfig, TransactionResult, TransactionStats};
 // ================ Asynchronous transaction context ================
 
 /// Asynchronous transaction context
@@ -429,7 +427,7 @@ impl AsyncTransactionContext {
         let mut backoff_ms = self.transaction_config.initial_backoff_ms;
 
         loop {
-            match self.try_execute_once(&transaction_id, start_time.elapsed()).await {
+            match self.try_execute_once(start_time.elapsed()).await {
                 Ok((results, batches_executed)) => {
                     return Ok(TransactionResult {
                         success: true,
@@ -476,7 +474,6 @@ impl AsyncTransactionContext {
     /// Asynchronously attempt to execute a transaction
     async fn try_execute_once(
         &self,
-        transaction_id: &str,
         elapsed: Duration,
     ) -> RedissonResult<(Vec<BatchResult>, usize)> {
         // Checking timeouts

@@ -59,7 +59,7 @@ tokio = { version = "1", features = ["full"] }
 ### With Additional Features
 ```toml
 [dependencies]
-redisson = { version = "0.1", features = ["async", "caching", "streams"] }
+redisson = { version = "0.1", features = ["async", "caching"] }
 ```
 
 ## 🚀 Quick Start

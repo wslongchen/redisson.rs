@@ -18,10 +18,9 @@
  *  *
  *  
  */
-use std::sync::Arc;
 use crate::{AsyncRLock, RedissonError, RedissonResult};
-use tokio::sync::{Mutex as TokioMutex, MutexGuard};
-use crate::lock::non_blocking::red_lock::AsyncRRedLock;
+use std::sync::Arc;
+use tokio::sync::Mutex as TokioMutex;
 
 /// === AsyncRMultiLock (Asynchronous interlocking) ===
 pub struct AsyncRMultiLock {

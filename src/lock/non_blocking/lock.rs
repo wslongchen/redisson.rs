@@ -20,19 +20,16 @@
  */
 use std::collections::HashMap;
 use std::future::Future;
-use std::sync::Arc;
-use std::time::{Duration, Instant, SystemTime};
-use std::hash::{Hash, Hasher};
 use std::pin::Pin;
-use parking_lot::Mutex;
-use uuid::Uuid;
-use tokio::sync::{Mutex as TokioMutex, MutexGuard};
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+use tokio::sync::Mutex as TokioMutex;
 use tokio::time::sleep;
 
 use crate::errors::{RedissonError, RedissonResult};
-use crate::{scripts, AsyncRedisConnectionManager, AsyncRedisConnection, thread_id_to_u64, LockInfo};
-use crate::lock::LocalLockState;
 use crate::lock::non_blocking::watchdog::AsyncLockWatchdog;
+use crate::lock::LocalLockState;
+use crate::{scripts, AsyncRedisConnectionManager, LockInfo};
 
 
 /// === AsyncRLock (Asynchronous reentrant lock)===
@@ -142,7 +139,6 @@ impl AsyncRLock {
     ) -> RedissonResult<LockInfo> {
         let start_time = Instant::now();
         let lock_info = LockInfo::new(self.name.clone(), lease_time);
-        let thread_id = thread_id_to_u64();
 
         loop {
             // Check for local reentry
@@ -177,8 +173,6 @@ impl AsyncRLock {
                         lock_count: 1,
                         lock_value: lock_info.value.clone(),
                         last_renew_time: Instant::now(),
-                        thread_id,
-                        watchdog_running: false,
                     },
                 );
                 return Ok(lock_info);

@@ -26,7 +26,7 @@ use parking_lot::RwLock;
 use r2d2::{Pool, PooledConnection};
 use redis::cluster::{ClusterClient, ClusterClientBuilder};
 use redis::sentinel::{LockedSentinelClient, SentinelClient, SentinelNodeConnectionInfo, SentinelServerType};
-use redis::{Client, ConnectionAddr, ConnectionInfo, ConnectionLike, IntoConnectionInfo, RedisConnectionInfo, ScriptInvocation, TlsMode};
+use redis::{Client, ConnectionAddr, ConnectionInfo, ConnectionLike, IntoConnectionInfo, RedisConnectionInfo, TlsMode};
 use std::num::NonZeroUsize;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};

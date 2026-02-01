@@ -18,14 +18,14 @@
  *  *
  *
  */
+use redis::RedisResult;
+use serde::{de::DeserializeOwned, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
-use serde::{Serialize, de::DeserializeOwned};
-use redis::{FromRedisValue, ParsingError, RedisResult};
 
-use crate::errors::{RedissonResult, RedissonError};
-use crate::{PendingMessage, RedisMapExt, StreamConsumer, StreamGroup, StreamInfo, StreamMessage, SyncRedisConnectionManager};
+use crate::errors::{RedissonError, RedissonResult};
+use crate::{PendingMessage, StreamConsumer, StreamGroup, StreamInfo, StreamMessage, SyncRedisConnectionManager};
 
 
 /// Redisson Stream implementation

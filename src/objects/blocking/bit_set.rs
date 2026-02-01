@@ -18,10 +18,10 @@
  *  *
  *  
  */
+use crate::{BaseDistributedObject, RLockable, RObject, RObjectBase, RedissonResult, SyncRedisConnectionManager};
+use redis::Commands;
 use std::sync::Arc;
 use std::time::Duration;
-use redis::Commands;
-use crate::{BaseDistributedObject, RAtomicLong, RLockable, RObject, RObjectBase, RedissonResult, SyncRedisConnectionManager};
 
 /// === RBitSet (bit set) ===
 pub struct RBitSet {

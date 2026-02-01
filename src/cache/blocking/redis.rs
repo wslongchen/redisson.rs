@@ -18,18 +18,15 @@
  *  *
  *  
  */
-use std::sync::Arc;
-use std::time::{Duration, Instant};
-use std::collections::HashMap;
-use std::hash::Hash;
-use std::num::NonZeroUsize;
-use parking_lot::{RwLock, Mutex};
-use lru::LruCache;
+use parking_lot::RwLock;
 use redis::Commands;
-use serde::{Serialize, de::DeserializeOwned};
+use serde::{de::DeserializeOwned, Serialize};
+use std::hash::Hash;
+use std::sync::Arc;
+use std::time::Duration;
 
 use crate::errors::RedissonResult;
-use crate::{Cache, CacheEntryStats, CacheStats, LocalCache, RedissonError, SyncRedisConnectionManager};
+use crate::{Cache, CacheStats, LocalCache, RedissonError, SyncRedisConnectionManager};
 
 /// Integrated caching with Redis
 pub struct RedisIntegratedCache<K, V> {
@@ -50,7 +47,6 @@ impl<K: Eq + Hash + Clone + Serialize + DeserializeOwned + std::fmt::Debug,
         max_size: usize,
     ) -> Self {
         let local_cache = LocalCache::new(
-            cache_name.to_string(),
             ttl,
             max_size,
             Arc::new(RwLock::new(CacheStats::new())),

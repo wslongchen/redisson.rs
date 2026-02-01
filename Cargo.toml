@@ -3,38 +3,69 @@ name = "redisson"
 version = "0.1.0"
 authors = ["mrpan <1049058427@qq.com>"]
 edition = "2021"
-description = "A Redis client for Rust implementing Redisson-like distributed objects and locks"
+description = "A Redis-based distributed synchronization and data structures library for Rust"
 readme = "README.md"
-keywords = ["akita", "orm", "mysql", "sqlite"]
-categories = ["data-structures", "database-implementations"]
-homepage = "https://github.com/wslongchen/akita"
-repository = "https://github.com/wslongchen/akita"
-documentation = "https://docs.rs/akita"
+keywords = ["redis", "distributed", "lock", "synchronization", "redisson"]
+categories = ["data-structures", "asynchronous", "database"]
+homepage = "https://github.com/wslongchen/redisson.rs"
+repository = "https://github.com/wslongchen/redisson.rs"
+documentation = "https://docs.rs/redisson"
 license = "MIT"
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
 [lib]
 path = "src/lib.rs"
+
+[features]
+# Synchronous mode (enabled by default)
+default = ["sync"]
+sync = ["r2d2"]
+
+# Asynchronous mode (requires tokio runtime)
+async = ["tokio/full", "async-trait", "futures", "deadpool", "tokio-stream"]
+
+# Full features (synchronous + asynchronous + all features)
+full = ["sync", "async"]
+
 [dependencies]
+# Redis core dependencies (including base functionality)
 redis = { version = "1.0.2", features = ["r2d2", "tokio-comp", "tokio-native-tls-comp", "cluster-async","tls-rustls", "connection-manager","sentinel", "streams", "cluster"] }
-r2d2 = "0.8"
-deadpool = { version = "0.10", features = ["managed", "rt_tokio_1"] }
-tokio = { version = "1.0", features = ["full"] }
-async-trait = "0.1"
+
+# Asynchronous dependent dependencies (conditional compilation)
+async-trait = { version = "0.1", optional = true }
+futures = { version = "0.3", optional = true }
+deadpool = { version = "0.10", features = ["managed", "rt_tokio_1"], optional = true }
+
+# Runtime (conditional compilation)
+tokio = { version = "1.0", optional = true, features = ["rt", "sync", "time"] }
+tokio-stream = {version = "0.1.18", optional = true}
+
+# Synchronous mode dependencies (conditional compilation)
+r2d2 = { version = "0.8", optional = true }
+
+# Core tool library
 once_cell = "1.18"
 rand = "0.8"
 uuid = { version = "1.0", features = ["v4", "serde"] }
-tracing = "0.1"
-thiserror = "1.0"
+
+# Data structures
+bloom = "0.3"
+lru = "0.16.3"
+parking_lot = "0.12"
+
+# serialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-futures = "0.3"
-bloom = "0.3"
-parking_lot = "0.12"
-lru = "0.16.3"
-tokio-stream = "0.1.18"
+
+# Error handling
+thiserror = "1.0"
+
+# Logging
+tracing = { version = "0.1"}
 
 [dev-dependencies]
+# Testing dependencies
 criterion = { version = "0.8.1", features = ["async", "async_futures"] }
+tokio = { version = "1.0", features = ["full"] }
 
 [[bench]]
 name = "redisson_benchmark"

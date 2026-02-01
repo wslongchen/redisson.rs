@@ -21,11 +21,11 @@
 
 
 use crate::client::stats::ClientStats;
-use crate::{LocalCacheManager, SyncRedisConnectionManager, RBloomFilter, RBucket, RFairLock, RList, RLock, RMap, RMultiLock, RRedLock, RSet, RSortedSet, RStream, RedisIntegratedCache, RedissonConfig, RedissonError, RedissonResult, BatchProcessor, RBatch, RAtomicLong, RSemaphore, RRateLimiter, RCountDownLatch, RBitSet, RTopic, RBlockingQueue, RGeo, RKeys, RDelayedQueue, RReadWriteLock, SyncTransactionBuilder, SyncTransactionContext};
-use std::sync::Arc;
-use std::time::Duration;
+use crate::{BatchProcessor, LocalCacheManager, RAtomicLong, RBatch, RBitSet, RBlockingQueue, RBloomFilter, RBucket, RCountDownLatch, RDelayedQueue, RFairLock, RGeo, RKeys, RList, RLock, RMap, RMultiLock, RRateLimiter, RReadWriteLock, RRedLock, RSemaphore, RSet, RSortedSet, RStream, RTopic, RedisIntegratedCache, RedissonConfig, RedissonResult, SyncRedisConnectionManager, SyncTransactionBuilder, SyncTransactionContext};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
+use std::sync::Arc;
+use std::time::Duration;
 
 // Synchronous client
 pub struct RedissonClient {

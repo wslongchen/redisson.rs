@@ -20,12 +20,10 @@
  */
 
 use std::future::Future;
-use std::pin::Pin;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::time::{sleep, interval};
-use crate::lock::LocalLockState;
 use tokio::sync::{watch, Mutex as TokioMutex};
+use tokio::time::interval;
 
 pub struct AsyncLockWatchdog {
     stop_tx: Arc<TokioMutex<Option<watch::Sender<()>>>>,

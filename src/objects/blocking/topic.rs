@@ -18,14 +18,12 @@
  *  *
  *  
  */
+use crate::{scripts, BaseDistributedObject, RObject, RObjectBase, RedissonResult, SyncRedisConnectionManager};
+use parking_lot::Mutex;
+use serde::{de::DeserializeOwned, Serialize};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::{channel, Sender, Receiver};
-use serde::{Serialize, de::DeserializeOwned};
-use parking_lot::Mutex;
-use redis::PubSub;
-use crate::{scripts, BaseDistributedObject, RObject, RObjectBase, RedissonResult, SyncRedisConnectionManager};
 
 /// Message listener characteristics
 pub trait MessageListener<V>: Send + Sync + 'static

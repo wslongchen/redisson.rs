@@ -19,12 +19,12 @@
  *  
  */
 
-use std::collections::VecDeque;
-use std::sync::Arc;
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::{Duration, Instant};
-use tokio::sync::Mutex as TokioMutex;
 use crate::LatencyStats;
+use std::collections::VecDeque;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::sync::Mutex as TokioMutex;
 
 /// Asynchronous network latency statistics
 pub struct AsyncNetworkLatencyStats {

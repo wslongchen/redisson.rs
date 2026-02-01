@@ -23,7 +23,7 @@ use std::time::{Duration, Instant};
 use tokio::time::sleep;
 use uuid::Uuid;
 use crate::{scripts, AsyncRedisConnectionManager, RedissonError, RedissonResult};
-use tokio::sync::{Mutex as TokioMutex, MutexGuard};
+use tokio::sync::{Mutex as TokioMutex};
 
 /// === AsyncRFairLock (Asynchronous fair lock) ===
 pub struct AsyncRFairLock {

@@ -19,11 +19,6 @@
  *  
  */
 
-use std::time::Duration;
-
-use crate::errors::RedissonResult;
-use crate::lock::{RLock, RFairLock};
-
 /// The base class of all lock-enabled distributed objects
 #[derive(Clone)]
 pub struct LockableObject {

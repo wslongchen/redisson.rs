@@ -25,11 +25,10 @@ pub use local::*;
 pub use redis::*;
 
 use std::time::Duration;
-use async_trait::async_trait;
+
 
 use crate::RedissonResult;
 
-#[async_trait]
 pub trait Cache<K, V> {
     fn get(&self, key: &K) -> RedissonResult<Option<V>>;
     fn set(&self, key: K, value: V) -> RedissonResult<()>;

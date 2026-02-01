@@ -24,16 +24,14 @@ use std::time::{Duration, Instant};
 use std::collections::VecDeque;
 use tokio::sync::{Mutex, RwLock, Notify, Semaphore};
 use tokio::time;
-use redis::{Cmd, Value, RedisResult};
+use redis::{Value};
 use lru::LruCache;
 use std::num::NonZeroUsize;
-use futures::future::BoxFuture;
-use futures::FutureExt;
-use tracing::{info, warn, error};
+use tracing::{info, error};
 
 use crate::errors::RedissonError;
 use crate::connection::AsyncRedisConnectionManager;
-use crate::{BatchConfig, BatchGroup, BatchPriority, BatchResult, BatchStats, CommandBuilder, RedissonResult};
+use crate::{BatchConfig, BatchGroup, BatchPriority, BatchResult, BatchStats, CachedValue, CommandBuilder, RedissonResult};
 // ================ Asynchronous batch processors ================
 /// Asynchronous batch processors
 pub struct AsyncBatchProcessor {
@@ -50,7 +48,7 @@ pub struct AsyncBatchProcessor {
     stats: Arc<RwLock<BatchStats>>,
 
     // caching
-    cache: Option<Arc<RwLock<LruCache<String, AsyncCachedValue<BatchResult>>>>>,
+    cache: Option<Arc<RwLock<LruCache<String, CachedValue<BatchResult>>>>>,
 
     // Close flag
     is_closed: tokio::sync::watch::Sender<bool>,
@@ -63,21 +61,6 @@ pub struct AsyncBatchProcessor {
 
     // Refresh task handles in the background
     flusher_handle: Arc<Mutex<Option<tokio::task::JoinHandle<()>>>>,
-}
-
-/// Cache values asynchronously
-struct AsyncCachedValue<T> {
-    value: T,
-    expiry: Instant,
-    created: Instant,
-    hits: u64,
-    size_bytes: usize,
-}
-
-impl<T> AsyncCachedValue<T> {
-    fn is_expired(&self) -> bool {
-        Instant::now() > self.expiry
-    }
 }
 
 impl AsyncBatchProcessor {
@@ -316,13 +299,60 @@ impl AsyncBatchProcessor {
 
     /// Get the result from the cache
     async fn get_cached_results(&self, commands: &[Box<dyn CommandBuilder>]) -> Option<Vec<BatchResult>> {
-        // TODO: Simplified implementation
-        None
+        if let Some(cache) = &self.cache {
+            let mut cache = cache.write().await;
+            let mut cache_key_parts = Vec::new();
+
+            for cmd in commands {
+                let keys = cmd.keys();
+                if keys.is_empty() {
+                    return None;
+                }
+                cache_key_parts.extend(keys);
+            }
+
+            // Generate cache keys
+            let cache_key = cache_key_parts.join("|");
+
+            if let Some(cached_value) = cache.get(&cache_key) {
+                if !cached_value.is_expired() {
+                    // To simplify things, we should actually store the serialization of the entire batch
+                    return None;
+                }
+            }
+
+            None
+        } else {
+            None
+        }
     }
 
     /// Updating the cache
     async fn update_cache(&self, commands: &[Box<dyn CommandBuilder>], results: &[BatchResult]) {
-        // Simplified implementation
+        if let Some(cache) = &self.cache {
+            let mut cache = cache.write().await;
+            let now = Instant::now();
+            let expires_at = now + self.config.cache_ttl;
+
+            // Generate cache keys
+            let mut cache_key_parts = Vec::new();
+            for cmd in commands {
+                cache_key_parts.extend(cmd.keys());
+            }
+            let cache_key = cache_key_parts.join("|");
+
+            // Serializing the result (simplifies processing)
+            let size_bytes = std::mem::size_of_val(results);
+
+            cache.put(cache_key, CachedValue {
+                // This is where you store the serialized result to make things easier
+                value: BatchResult::Nil,
+                expiry: expires_at,
+                created: now,
+                hits: 0,
+                size_bytes,
+            });
+        }
     }
 
     /// Logging statistics

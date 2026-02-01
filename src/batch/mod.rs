@@ -20,23 +20,23 @@
  */
 
 mod blocking;
+#[cfg(feature = "async")]
 mod non_blocking;
 mod command_builder;
 mod command;
 
+pub use blocking::*;
 pub use command::*;
 pub use command_builder::*;
-pub use blocking::*;
+#[cfg(feature = "async")]
 pub use non_blocking::*;
 
 
-
-use std::collections::VecDeque;
+use crate::{RedissonError, RedissonResult};
+use redis::{from_redis_value, Value};
+use serde::de::DeserializeOwned;
 use std::fmt::{Debug, Formatter};
 use std::time::{Duration, Instant};
-use redis::{from_redis_value, Cmd, Value};
-use serde::de::DeserializeOwned;
-use crate::{RedissonError, RedissonResult};
 
 
 // ================ Priority enumeration ================
@@ -90,6 +90,9 @@ pub struct BatchStats {
     pub total_failures: u64,
     pub cache_hits: u64,
     pub cache_misses: u64,
+    pub avg_cached_command_count: u64,
+    pub total_cached_items: u64,
+    pub cache_size_bytes: u64,
     pub avg_batch_size: f64,
     pub avg_execution_time_ms: f64,
     pub queue_size: usize,
@@ -107,6 +110,9 @@ impl BatchStats {
             total_failures: 0,
             cache_hits: 0,
             cache_misses: 0,
+            avg_cached_command_count: 0,
+            total_cached_items: 0,
+            cache_size_bytes: 0,
             avg_batch_size: 0.0,
             avg_execution_time_ms: 0.0,
             concurrent_batches: 0,
@@ -226,7 +232,7 @@ impl BatchResult {
                 }
                 Ok(BatchResult::Array(results))
             }
-            Value::Push{ kind, data } => {
+            Value::Push{ data, .. } => {
                 let mut results = Vec::with_capacity(data.len());
                 for item in data {
                     results.push(BatchResult::from_redis_value(item)?);

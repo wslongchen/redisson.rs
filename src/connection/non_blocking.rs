@@ -18,19 +18,19 @@
  *  *
  *  
  */
-use std::num::NonZeroUsize;
-use std::ops::DerefMut;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc};
-use std::time::{Duration, Instant};
 use deadpool::managed::Metrics;
 use deadpool::Runtime;
 use lru::LruCache;
-use redis::aio::{ConnectionLike as AsyncConnectionLike};
+use redis::aio::ConnectionLike as AsyncConnectionLike;
 use redis::cluster::{ClusterClient, ClusterClientBuilder};
 use redis::cluster_async::ClusterConnection;
-use redis::sentinel::{LockedSentinelClient, SentinelClient, SentinelNodeConnectionInfo, SentinelServerType};
-use redis::{AsyncTypedCommands, Client, ConnectionAddr, ConnectionInfo, ConnectionLike, IntoConnectionInfo, RedisConnectionInfo, TlsMode, AsyncCommands};
+use redis::sentinel::{SentinelClient, SentinelNodeConnectionInfo, SentinelServerType};
+use redis::{Client, ConnectionAddr, ConnectionInfo, IntoConnectionInfo, RedisConnectionInfo, TlsMode};
+use std::num::NonZeroUsize;
+use std::ops::DerefMut;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use std::time::{Duration, Instant};
 use tokio::sync::{Mutex as TokioMutex, RwLock};
 use tokio::time::timeout;
 
@@ -110,7 +110,7 @@ impl deadpool::managed::Manager for AsyncSingleRedisConnectionManager {
         Ok(conn)
     }
 
-    async fn recycle(&self, conn: &mut Self::Type, metrics: &Metrics) -> deadpool::managed::RecycleResult<Self::Error> {
+    async fn recycle(&self, conn: &mut Self::Type, _metrics: &Metrics) -> deadpool::managed::RecycleResult<Self::Error> {
         // Check that the connection is still valid
         match redis::cmd("PING").query_async::<String>(conn).await {
             Ok(pong) if pong == "PONG" => Ok(()),
@@ -123,7 +123,6 @@ impl deadpool::managed::Manager for AsyncSingleRedisConnectionManager {
 // Asynchronous cluster connection manager
 pub struct AsyncClusterConnectionManager {
     client: ClusterClient,
-    config: RedissonConfig,
 }
 
 #[async_trait::async_trait]
@@ -135,7 +134,7 @@ impl deadpool::managed::Manager for AsyncClusterConnectionManager {
         self.client.get_async_connection().await
     }
 
-    async fn recycle(&self, conn: &mut Self::Type, metrics: &Metrics) -> deadpool::managed::RecycleResult<Self::Error> {
+    async fn recycle(&self, conn: &mut Self::Type, _metrics: &Metrics) -> deadpool::managed::RecycleResult<Self::Error> {
         match redis::cmd("PING").query_async::<String>(conn).await {
             Ok(pong) if pong == "PONG" => Ok(()),
             Ok(_) => Err(deadpool::managed::RecycleError::Message("Invalid PONG response".into())),
@@ -147,7 +146,6 @@ impl deadpool::managed::Manager for AsyncClusterConnectionManager {
 // Asynchronous Sentinel connection manager
 pub struct AsyncSentinelConnectionManager {
     client: TokioMutex<SentinelClient>,
-    config: RedissonConfig,
 }
 
 #[async_trait::async_trait]
@@ -160,7 +158,7 @@ impl deadpool::managed::Manager for AsyncSentinelConnectionManager {
         client.get_async_connection().await
     }
 
-    async fn recycle(&self, conn: &mut Self::Type, metrics: &Metrics) -> deadpool::managed::RecycleResult<Self::Error> {
+    async fn recycle(&self, conn: &mut Self::Type, _metrics: &Metrics) -> deadpool::managed::RecycleResult<Self::Error> {
         match redis::cmd("PING").query_async::<String>(conn).await {
             Ok(pong) if pong == "PONG" => Ok(()),
             Ok(_) => Err(deadpool::managed::RecycleError::Message("Invalid PONG response".into())),
@@ -351,12 +349,12 @@ impl AsyncRedisConnectionManager {
 
     fn create_cluster_manager(config: &RedissonConfig) -> RedissonResult<AsyncClusterConnectionManager> {
         let client = Self::create_cluster_client(config)?;
-        Ok(AsyncClusterConnectionManager { client, config: config.clone() })
+        Ok(AsyncClusterConnectionManager { client })
     }
 
     fn create_sentinel_manager(config: &RedissonConfig) -> RedissonResult<AsyncSentinelConnectionManager> {
         let client = Self::create_sentinel_client(config)?;
-        Ok(AsyncSentinelConnectionManager { client: TokioMutex::new(client), config: config.clone() })
+        Ok(AsyncSentinelConnectionManager { client: TokioMutex::new(client) })
     }
 
     fn create_single_client(config: &RedissonConfig) -> RedissonResult<Client> {
@@ -782,7 +780,6 @@ impl AsyncRedisConnectionManager {
 
 // Provides command execution methods for asynchronous connections
 impl AsyncRedisConnection {
-    
     
     pub async fn execute_command<T: redis::FromRedisValue>(&mut self, cmd: &mut redis::Cmd) -> RedissonResult<T> {
         match self {

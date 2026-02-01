@@ -25,16 +25,15 @@ mod red_lock;
 mod read_write;
 mod watchdog;
 
-pub use watchdog::*;
-pub use read_write::*;
-pub use lock::*;
 pub use fair_lock::*;
+pub use lock::*;
 pub use multi_lock::*;
+pub use read_write::*;
 pub use red_lock::*;
+pub use watchdog::*;
 
-use std::time::{Duration, SystemTime};
-use uuid::Uuid;
-use crate::{thread_id_to_u64, RedissonResult};
+use crate::{RedissonResult};
+use std::time::Duration;
 
 /// Characteristics of the lock operation of Redisson distributed objects
 pub trait RLockable {

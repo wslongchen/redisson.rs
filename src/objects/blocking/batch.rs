@@ -18,11 +18,10 @@
  *  *
  *  
  */
-use crate::{BatchPriority, BatchProcessor, BatchResult, CommandBuilder, DelCommand, ExecutionMode, ExpireCommand, GenericCommand, GetCommand, HGetCommand, HSetCommand, IncrByCommand, LPushCommand, ListPosition, RedissonError, RedissonResult, SAddCommand, SetCommand};
-use serde::{Serialize, de::DeserializeOwned};
+use crate::{BatchPriority, BatchProcessor, BatchResult, CommandBuilder, DelCommand, ExpireCommand, GenericCommand, GetCommand, HGetCommand, HSetCommand, IncrByCommand, LPushCommand, RedissonError, RedissonResult, SAddCommand, SetCommand};
+use redis::ToRedisArgs;
 use std::sync::Arc;
 use std::time::Duration;
-use redis::ToRedisArgs;
 
 // ================ RBatch ================
 
@@ -363,8 +362,8 @@ impl RBatchBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::RedissonConfig;
     use crate::client::RedissonClient;
+    use crate::config::RedissonConfig;
     use crate::{BatchConfig, GetCommand, SetCommand};
 
     fn create_test_client() -> RedissonClient {

@@ -19,10 +19,10 @@
  *  
  */
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use redis::AsyncTypedCommands;
-use tokio::sync::{Mutex as TokioMutex, MutexGuard};
-use tokio::time::{sleep, timeout};
+use tokio::sync::{Mutex as TokioMutex};
+use tokio::time::{sleep};
 use tracing::{debug, info};
 use uuid::Uuid;
 use crate::{scripts, AsyncRedisConnectionManager, AsyncNetworkLatencyStats, RedissonError, RedissonResult};
@@ -402,7 +402,7 @@ impl AsyncRRedLock {
                     successful_measurements += 1;
 
                     // Record this sample
-                    self.latency_stats.add_sample(rtt);
+                    self.latency_stats.add_sample(rtt).await;
                 }
             }
         }
@@ -474,18 +474,160 @@ impl AsyncRRedLock {
 
     /// Check the clock synchronization status between nodes
     async fn check_clock_synchronization(&self) -> bool {
-        // TODO: In practice, this can be checked with NTP or Redis TIME
-
-        let stats = self.latency_stats.get_stats().await;
-        if stats.count < 3 {
-            return false; // The data is insufficient, and it is conservative to say that it is out of sync
+        // If there are too few nodes, we simply return false
+        if self.connection_managers.len() < 2 {
+            debug!("Too few nodes for clock synchronization check");
+            return false;
         }
 
-        // Clocks are considered well synchronized if there is little difference between the maximum and minimum delays
-        let latency_range = stats.max - stats.min;
-        latency_range < Duration::from_millis(5)
+        let mut node_times = Vec::new();
+        let mut tasks = Vec::new();
+
+        // Get the Redis TIME of all nodes in parallel
+        for (i, manager) in self.connection_managers.iter().enumerate() {
+            let manager = manager.clone();
+
+            tasks.push(tokio::spawn(async move {
+                match manager.get_connection().await {
+                    Ok(mut conn) => {
+                        // Use Redis' TIME command to get the server time
+                        let result: Result<Vec<String>, redis::RedisError> =
+                            redis::cmd("TIME").query_async(&mut conn).await;
+
+                        match result {
+                            Ok(time_parts) if time_parts.len() >= 2 => {
+                                // Parse the returned time string
+                                if let (Ok(seconds), Ok(microseconds)) = (
+                                    time_parts[0].parse::<u64>(),
+                                    time_parts[1].parse::<u64>()
+                                ) {
+                                    // Converts to a millisecond timestamp
+                                    let timestamp_ms = seconds * 1000 + microseconds / 1000;
+                                    Some((i, timestamp_ms))
+                                } else {
+                                    debug!("Failed to parse time from node {}: {:?}", i, time_parts);
+                                    None
+                                }
+                            }
+                            Ok(time_parts) => {
+                                debug!("Invalid TIME response from node {}: {:?}", i, time_parts);
+                                None
+                            }
+                            Err(e) => {
+                                debug!("Failed to get time from node {}: {}", i, e);
+                                None
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        debug!("Failed to connect to node {}: {}", i, e);
+                        None
+                    }
+                }
+            }));
+        }
+
+        // Collecting results
+        for task in tasks {
+            if let Ok(Some((node_idx, timestamp))) = task.await {
+                node_times.push((node_idx, timestamp));
+            }
+        }
+
+        // If too few node times are fetched, delay statistics are used as fallback
+        if node_times.len() < 2 {
+            debug!("Not enough time samples, falling back to latency statistics");
+            return self.check_sync_via_latency_stats().await;
+        }
+
+        // Difference in computation time
+        self.analyze_time_differences(&node_times).await
     }
 
+    /// Clock Synchronization Checking based on delay statistics (fallback method)
+    async fn check_sync_via_latency_stats(&self) -> bool {
+        let stats = self.latency_stats.get_stats().await;
+
+        if stats.count < 5 {
+            debug!("Insufficient latency data for clock sync check");
+            return false;
+        }
+
+        // The delay variation range is used to judge the clock synchronization
+        // If the latency is very stable, the clocks are probably well synchronized
+        let latency_range = stats.max - stats.min;
+        let avg_latency = stats.avg;
+
+        // Clock synchronization is considered to be good if the delay range is less than 30% of the average delay and less than 10ms
+        let range_to_avg_ratio = if avg_latency > Duration::from_micros(1) {
+            latency_range.as_micros() as f64 / avg_latency.as_micros() as f64
+        } else {
+            1.0
+        };
+
+        let is_synced = latency_range < Duration::from_millis(10) &&
+            range_to_avg_ratio < 0.3;
+
+        debug!(
+            "Clock sync check via latency: range={:?}, avg={:?}, ratio={:.2}, synced={}",
+            latency_range, avg_latency, range_to_avg_ratio, is_synced
+        );
+
+        is_synced
+    }
+
+    /// Analyzing time differences
+    async fn analyze_time_differences(&self, node_times: &[(usize, u64)]) -> bool {
+        // Find the minimum and maximum timestamps
+        let timestamps: Vec<u64> = node_times.iter().map(|(_, ts)| *ts).collect();
+        let min_ts = *timestamps.iter().min().unwrap_or(&0);
+        let max_ts = *timestamps.iter().max().unwrap_or(&0);
+
+        // Calculate maximum time difference (ms)
+        let max_diff_ms = max_ts.saturating_sub(min_ts);
+
+        // Get the local time as a reference
+        let local_time_ms = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis() as u64;
+
+        // Calculate the average difference from the local time
+        let mut total_diff = 0u64;
+        let mut valid_samples = 0;
+
+        for (_, ts) in node_times {
+            let diff = ts.abs_diff(local_time_ms);
+            if diff < 10000 { // Outliers with differences greater than 10 seconds are ignored
+                total_diff += diff;
+                valid_samples += 1;
+            }
+        }
+
+        let avg_diff = if valid_samples > 0 {
+            total_diff / valid_samples as u64
+        } else {
+            max_diff_ms
+        };
+
+        // Criteria of judgment：
+        // 1. The maximum difference between nodes is < 10ms
+        // 2. The average difference from the local time was < 100ms
+        let is_synced = max_diff_ms < 10 && avg_diff < 100;
+
+        debug!(
+            "Clock sync analysis: nodes={}, max_diff={}ms, avg_diff={}ms, synced={}",
+            node_times.len(), max_diff_ms, avg_diff, is_synced
+        );
+
+        if !is_synced && max_diff_ms < 50 {
+            // If the difference is small but not perfectly synchronized, log a warning but do not return a failure
+            debug!("Clocks slightly out of sync: max_diff={}ms", max_diff_ms);
+        }
+
+        is_synced
+    }
+    
     /// Warm up network latency measurements
     pub async fn warmup_latency_measurement(&self, iterations: usize) {
         info!("Start warming up network latency measurements ({} iterations)...", iterations);

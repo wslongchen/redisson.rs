@@ -19,19 +19,17 @@
  *  
  */
 
-use std::sync::Arc;
-use std::time::{Duration, Instant};
+use lru::LruCache;
+use parking_lot::RwLock;
+use serde::{de::DeserializeOwned, Serialize};
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::num::NonZeroUsize;
-use async_trait::async_trait;
-use parking_lot::{RwLock, Mutex};
-use lru::LruCache;
-use redis::Commands;
-use serde::{Serialize, de::DeserializeOwned};
+use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 use crate::errors::RedissonResult;
-use crate::{estimate_size, AsyncCache, AsyncLocalCache, AsyncLocalCacheManager, AsyncRedisConnectionManager, AsyncRedisIntegratedCache, Cache, CacheEntryStats, CacheStats, CachedValue, RedisIntegratedCache, RedissonError, SyncRedisConnectionManager};
+use crate::{estimate_size, Cache, CacheEntryStats, CacheStats, CachedValue, RedisIntegratedCache, SyncRedisConnectionManager};
 
 /// The local cache manager
 pub struct LocalCacheManager<K, V> {
@@ -46,9 +44,7 @@ pub struct LocalCacheManager<K, V> {
 pub struct LocalCache<K, V> {
     cache: Arc<RwLock<LruCache<K, CachedValue<V>>>>,
     pub ttl: Duration,
-    max_size: usize,
     stats: Arc<RwLock<CacheStats>>,
-    name: String,
 }
 
 
@@ -90,7 +86,6 @@ impl<K: Eq + Hash + Clone + std::marker::Send + std::marker::Sync + 'static, V: 
         }
 
         let cache = Arc::new(LocalCache::new(
-            name.to_string(),
             self.default_ttl,
             self.default_max_size,
             self.stats.clone(),
@@ -144,13 +139,11 @@ impl<K: Eq + Hash + Clone + std::marker::Send + std::marker::Sync + 'static, V: 
 
 
 impl<K: Eq + Hash + Clone, V: Clone + Serialize + DeserializeOwned> LocalCache<K, V> {
-    pub fn new(name: String, ttl: Duration, max_size: usize, stats: Arc<RwLock<CacheStats>>) -> Self {
+    pub fn new(ttl: Duration, max_size: usize, stats: Arc<RwLock<CacheStats>>) -> Self {
         Self {
             cache: Arc::new(RwLock::new(LruCache::new(NonZeroUsize::new(max_size).unwrap()))),
             ttl,
-            max_size,
             stats,
-            name,
         }
     }
 

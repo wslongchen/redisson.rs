@@ -18,14 +18,12 @@
  *  *
  *  
  */
-use std::sync::Arc;
-use std::pin::Pin;
-use serde::{Serialize, de::DeserializeOwned};
-use tokio::sync::{Mutex, RwLock, mpsc};
-use tokio::task::JoinHandle;
+use crate::{AsyncBaseDistributedObject, AsyncRObject, AsyncRObjectBase, AsyncRedisConnectionManager, RedissonResult};
 use async_trait::async_trait;
-use futures::{StreamExt, stream::BoxStream};
-use crate::{AsyncBaseDistributedObject, AsyncRObject, RedissonResult, AsyncRedisConnectionManager, AsyncRedisConnection, AsyncRObjectBase};
+use serde::{de::DeserializeOwned, Serialize};
+use std::sync::Arc;
+use tokio::sync::{mpsc, Mutex, RwLock};
+use tokio::task::JoinHandle;
 
 /// Asynchronous message listener characteristics
 #[async_trait]
@@ -436,15 +434,7 @@ where
                     }
 
                     // unsubscribe
-                    match connection_manager.get_connection().await {
-                        Ok(connection) => {
-                            conn.execute_command::<()>(&mut redis::cmd("UNSUBSCRIBE").arg(&channel)).await.unwrap();
-                        }
-                        Err(e) => {
-                            eprintln!("Failed to get connection for subscription: {}", e); 
-                        }
-                    }
-                    
+                    conn.execute_command::<()>(&mut redis::cmd("UNSUBSCRIBE").arg(&channel)).await.unwrap();
 
                     is_subscribed.store(false, std::sync::atomic::Ordering::SeqCst);
                 }
@@ -566,8 +556,8 @@ mod tests {
     use super::*;
     use crate::config::RedissonConfig;
     use crate::AsyncSyncRedisConnectionManager;
-    use tokio::time::{sleep, Duration};
     use std::sync::atomic::{AtomicUsize, Ordering};
+    use tokio::time::{sleep, Duration};
 
     #[tokio::test]
     async fn test_topic_publish() -> RedissonResult<()> {

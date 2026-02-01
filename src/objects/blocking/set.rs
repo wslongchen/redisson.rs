@@ -18,12 +18,11 @@
  *  *
  *  
  */
-use crate::{BaseDistributedObject, RBucket, RFairLock, RLock, RLockable, RObject, RObjectBase, RedissonResult, SyncRedisConnectionManager};
+use crate::{BaseDistributedObject, RFairLock, RLock, RLockable, RObject, RObjectBase, RedissonResult, SyncRedisConnectionManager};
 use redis::Commands;
 use serde::Serialize;
 use std::sync::Arc;
 use std::time::Duration;
-use serde::de::DeserializeOwned;
 
 // === RSet (Unordered set) ===
 pub struct RSet<V> {

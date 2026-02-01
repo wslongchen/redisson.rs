@@ -18,15 +18,14 @@
  *  *
  *  
  */
+use crate::lock::LocalLockState;
+use crate::{scripts,  LockInfo, LockWatchdog, RedissonError, RedissonResult, SyncRedisConnectionManager};
+use parking_lot::Mutex;
+use redis::Commands;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::thread;
-use std::time::{Duration, Instant, SystemTime};
-use parking_lot::Mutex;
-use redis::Commands;
-use uuid::Uuid;
-use crate::{scripts, thread_id_to_u64, LockInfo, LockWatchdog, RedissonError, RedissonResult, SyncRedisConnectionManager};
-use crate::lock::LocalLockState;
+use std::time::{Duration, Instant};
 
 
 /// === RLock (Reentrant lock) ===
@@ -135,7 +134,6 @@ impl RLock {
     ) -> RedissonResult<LockInfo> {
         let start_time = Instant::now();
         let lock_info = LockInfo::new(self.name.clone(), lease_time);
-        let thread_id = thread_id_to_u64();
 
         loop {
             // Check for local reentry
@@ -169,8 +167,6 @@ impl RLock {
                         lock_count: 1,
                         lock_value: lock_info.value.clone(),
                         last_renew_time: Instant::now(),
-                        thread_id,
-                        watchdog_running: false,
                     },
                 );
                 return Ok(lock_info);

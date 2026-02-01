@@ -19,25 +19,22 @@
  *
  */
 mod blocking;
+#[cfg(feature = "async")]
 mod non_blocking;
 
 pub use blocking::*;
+#[cfg(feature = "async")]
 pub use non_blocking::*;
 
-use std::hash::{Hash, Hasher};
 use std::time::{Duration, Instant, SystemTime};
-use redis::Commands;
 use uuid::Uuid;
-use crate::errors::{RedissonError, RedissonResult};
-use crate::{scripts, thread_id_to_u64, AsyncRedisConnectionManager, SyncRedisConnectionManager};
+use crate::{thread_id_to_u64};
 
 /// 本地锁状态
 struct LocalLockState {
     lock_count: u32,
     lock_value: String,
     last_renew_time: Instant,
-    thread_id: u64,
-    watchdog_running: bool,
 }
 
 

@@ -24,12 +24,11 @@ use crate::{BaseDistributedObject, RObjectBase, RedissonResult, SyncRedisConnect
 /// === RScript (Script execution) ===
 pub struct RScript {
     base: BaseDistributedObject,
-    script_name: String,
 }
 
 impl RScript {
     pub fn new(connection_manager: Arc<SyncRedisConnectionManager>,  name: String) -> Self {
-        Self { base: BaseDistributedObject::new(connection_manager, name.to_string()), script_name: name }
+        Self { base: BaseDistributedObject::new(connection_manager, name.to_string())}
     }
 
     pub fn eval<T>(

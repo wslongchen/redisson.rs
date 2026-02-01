@@ -21,13 +21,12 @@
 
 // ================ Synchronous transaction batch processor ================
 
-use std::sync::Arc;
-use std::time::{Duration, Instant};
-use parking_lot::Mutex;
+use crate::{convert_value_to_batch_result, BatchConfig, BatchProcessor, BatchResult, BatchStats, CommandBuilder, DelCommand, ExpireCommand, GenericCommand, GetCommand, HGetCommand, HSetCommand, IncrByCommand, LPushCommand, RedissonError, RedissonResult, SAddCommand, SetCommand, SyncRedisConnectionManager, TransactionConfig, TransactionResult};
 use redis::Value;
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+use std::time::{Duration, Instant};
 use uuid::Uuid;
-use crate::{convert_value_to_batch_result, BatchConfig, BatchProcessor, BatchResult, BatchStats, CommandBuilder, DelCommand, ExpireCommand, GenericCommand, GetCommand, HGetCommand, HSetCommand, IncrByCommand, LPushCommand, RedissonError, RedissonResult, SAddCommand, SetCommand, SyncRedisConnectionManager, TransactionConfig, TransactionResult, TransactionStats};
 
 // ================ Synchronous transaction context ================
 
@@ -431,7 +430,7 @@ impl SyncTransactionContext {
         let mut backoff_ms = self.transaction_config.initial_backoff_ms;
 
         loop {
-            match self.try_execute_once(&transaction_id, start_time.elapsed()) {
+            match self.try_execute_once(start_time.elapsed()) {
                 Ok((results, batches_executed)) => {
                     return Ok(TransactionResult {
                         success: true,
@@ -478,7 +477,6 @@ impl SyncTransactionContext {
     /// Attempt to execute a transaction
     fn try_execute_once(
         &self,
-        transaction_id: &str,
         elapsed: Duration,
     ) -> RedissonResult<(Vec<BatchResult>, usize)> {
         // Checking timeouts

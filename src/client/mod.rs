@@ -21,9 +21,11 @@
 mod blocking;
 mod stats;
 mod circuit;
+#[cfg(feature = "async")]
 mod non_blocking;
 
 pub use blocking::*;
+#[cfg(feature = "async")]
 pub use non_blocking::*;
 pub use stats::*;
 pub use circuit::*;

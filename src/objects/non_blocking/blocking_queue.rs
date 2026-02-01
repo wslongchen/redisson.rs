@@ -18,12 +18,12 @@
  *  *
  *  
  */
-use std::sync::Arc;
-use std::time::Duration;
+use crate::{AsyncBaseDistributedObject, AsyncRFairLock, AsyncRLock, AsyncRLockable, AsyncRObject, AsyncRObjectBase, AsyncRedisConnectionManager, RedissonResult};
+use async_trait::async_trait;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use async_trait::async_trait;
-use crate::{RedissonResult, AsyncRedisConnectionManager, AsyncRedisConnection, AsyncBaseDistributedObject, AsyncRObject, AsyncRLockable, AsyncRLock, AsyncRFairLock, AsyncRObjectBase, AsyncRBitSet, AsyncRGeo};
+use std::sync::Arc;
+use std::time::Duration;
 
 
 // === AsyncRBlockingQueue Asynchronously blocking queues ===

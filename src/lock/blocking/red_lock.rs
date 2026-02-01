@@ -18,7 +18,6 @@
  *  *
  *  
  */
-use std::collections::HashMap;
 use std::sync::Arc;
 use parking_lot::Mutex;
 use uuid::Uuid;
@@ -142,7 +141,7 @@ impl RRedLock {
 
         // The clock drift is calculated according to the RedLock paper
         // drift = lease_time * drift_factor + 2ms (Network latency tolerance)
-        let drift = Duration::from_millis(
+        let _drift = Duration::from_millis(
             (self.drift_factor * self.lease_time.as_millis() as f64) as u64
         ) + Duration::from_millis(2);
 
@@ -189,7 +188,7 @@ impl RRedLock {
 
         if let Some(lock_value) = lock_value {
             let mut successes = 0;
-            let quorum = self.calculate_quorum();
+            let _quorum = self.calculate_quorum();
 
             // Locks are released only on nodes that have been successfully acquired
             for &node_idx in &acquired_nodes {
@@ -267,7 +266,7 @@ impl RRedLock {
     pub fn remaining_time(&self) -> RedissonResult<Duration> {
         let state = self.local_state.lock();
 
-        if let (Some(acquired_at), Some(lock_value)) = (state.acquired_at, &state.lock_value) {
+        if let (Some(_acquired_at), Some(_lock_value)) = (state.acquired_at, &state.lock_value) {
             // The remaining time of each node is checked and the minimum value is taken
             let mut min_ttl = Duration::from_secs(u64::MAX);
 
@@ -314,7 +313,7 @@ impl RRedLock {
         let connection_managers = self.connection_managers.clone();
         let name = self.name.clone();
         let lease_time = self.lease_time;
-        let drift_factor = self.drift_factor;
+        let _drift_factor = self.drift_factor;
 
         // The renewal interval is set to 1/3 of the valid time
         let renew_interval = initial_validity / 3;

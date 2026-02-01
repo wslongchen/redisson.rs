@@ -19,20 +19,17 @@
  *  
  */
 
+use lru::LruCache;
+use serde::{de::DeserializeOwned, Serialize};
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use async_trait::async_trait;
-use futures::future::BoxFuture;
-use lru::LruCache;
-use serde::{Serialize, de::DeserializeOwned};
-use tokio::sync::{RwLock, Mutex, RwLockReadGuard, RwLockWriteGuard};
+use tokio::sync::RwLock;
 use tokio::time;
 
-use crate::errors::RedissonResult;
-use crate::{RedissonError, AsyncRedisConnectionManager, CacheStats, estimate_size, AsyncRedisIntegratedCache, CachedValue, AsyncCache, CacheEntryStats};
+use crate::{estimate_size, AsyncCache, AsyncRedisConnectionManager, AsyncRedisIntegratedCache, CacheEntryStats, CacheStats, CachedValue};
 
 /// Local cache Manager - Asynchronous version
 pub struct AsyncLocalCacheManager<K, V> {
@@ -47,9 +44,7 @@ pub struct AsyncLocalCacheManager<K, V> {
 pub struct AsyncLocalCache<K, V> {
     cache: Arc<RwLock<LruCache<K, CachedValue<V>>>>,
     pub ttl: Duration,
-    max_size: usize,
     stats: Arc<RwLock<CacheStats>>,
-    name: String,
 }
 
 impl<K: Eq + Hash + Clone + Send + Sync + 'static, V: Clone + Serialize + DeserializeOwned + Send + Sync + 'static> AsyncLocalCacheManager<K, V> {
@@ -89,7 +84,6 @@ impl<K: Eq + Hash + Clone + Send + Sync + 'static, V: Clone + Serialize + Deseri
         }
 
         let cache = Arc::new(AsyncLocalCache::<K, V>::new(
-            name.to_string(),
             self.default_ttl,
             self.default_max_size,
             self.stats.clone(),
@@ -140,15 +134,13 @@ impl<K: Eq + Hash + Clone + Send + Sync + 'static, V: Clone + Serialize + Deseri
 }
 
 impl<K: Eq + Hash + Clone, V: Clone + Serialize + DeserializeOwned> AsyncLocalCache<K, V> {
-    pub fn new(name: String, ttl: Duration, max_size: usize, stats: Arc<RwLock<CacheStats>>) -> Self {
+    pub fn new(ttl: Duration, max_size: usize, stats: Arc<RwLock<CacheStats>>) -> Self {
         Self {
             cache: Arc::new(RwLock::new(LruCache::new(
                 NonZeroUsize::new(max_size).unwrap()
             ))),
             ttl,
-            max_size,
             stats,
-            name,
         }
     }
 

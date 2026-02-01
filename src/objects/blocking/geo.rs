@@ -18,13 +18,11 @@
  *  *
  *  
  */
-use std::sync::Arc;
-use std::time::Duration;
-use redis::geo;
-use redis::geo::RadiusOptions;
+use crate::{BaseDistributedObject, GeoRadiusOptions, GeoRadiusResult, GeoSort, GeoUnit, RFairLock, RLock, RLockable, RObject, RObjectBase, RedissonResult, SyncRedisConnectionManager};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use crate::{BaseDistributedObject, GeoRadiusOptions, GeoRadiusResult, GeoSort, GeoUnit, RBucket, RFairLock, RLock, RLockable, RObject, RObjectBase, RedissonResult, SyncRedisConnectionManager};
+use std::sync::Arc;
+use std::time::Duration;
 
 /// === RGeo (Geographic space) ===
 pub struct RGeo<V> {

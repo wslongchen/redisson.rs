@@ -91,18 +91,21 @@ impl From<r2d2::Error> for RedissonError {
     }
 }
 
+#[cfg(feature = "async")]
 impl From<deadpool::managed::PoolError<RedisError>> for RedissonError {
     fn from(err: deadpool::managed::PoolError<RedisError>) -> Self {
         RedissonError::PoolError(err.to_string())
     }
 }
 
+#[cfg(feature = "async")]
 impl From<deadpool::managed::BuildError> for RedissonError {
     fn from(err: deadpool::managed::BuildError) -> Self {
         RedissonError::PoolError(err.to_string())
     }
 }
 
+#[cfg(feature = "async")]
 impl From<tokio::task::JoinError> for RedissonError {
     fn from(err: tokio::task::JoinError) -> Self {
         RedissonError::AsyncError(err.to_string())

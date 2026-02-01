@@ -20,18 +20,17 @@
  */
 use std::collections::{VecDeque};
 use std::num::NonZeroUsize;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc};
 use std::time::{Duration, Instant};
 
 use lru::LruCache;
-use parking_lot::{Condvar, Mutex, RwLock};
-use redis::{Connection, IntoConnectionInfo, RedisResult, SortedSetAddOptions, Value};
+use parking_lot::{Mutex, RwLock};
+use redis::{Value};
 use tracing::{error, info, warn};
 use crate::errors::{RedissonError, RedissonResult};
-use crate::{estimate_size, BatchConfig, BatchGroup, BatchPriority, BatchResult, BatchStats, ExecutionMode, GeoUnit, ListEnd, ListPosition, SyncRedisConnectionManager};
-use serde::{Serialize, de::DeserializeOwned};
-use redis::{Cmd, ConnectionLike, Pipeline};
+use crate::{BatchConfig, BatchGroup, BatchPriority, BatchResult, BatchStats, SyncRedisConnectionManager};
+use redis::{ConnectionLike, Pipeline};
 use crate::batch::{BackoffStrategy, CachedValue};
 use crate::batch::command_builder::CommandBuilder;
 
@@ -94,12 +93,12 @@ impl BatchProcessor {
 
     /// Performs batch processing (returns no results, high performance)
     pub fn exec_batch(&self, commands: Vec<Box<dyn CommandBuilder>>) -> RedissonResult<()> {
-        self.execute_batch_internal(commands, ExecutionMode::Sync, false).map(|_| ())
+        self.execute_batch_internal(commands,false).map(|_| ())
     }
 
     /// Query batching (returning results)
     pub fn query_batch(&self, commands: Vec<Box<dyn CommandBuilder>>) -> RedissonResult<Vec<BatchResult>> {
-        self.execute_batch_internal(commands, ExecutionMode::Sync, true)
+        self.execute_batch_internal(commands, true)
     }
 
     /// Perform batch processing asynchronously (without returning results)
@@ -139,7 +138,7 @@ impl BatchProcessor {
         let backoff_strategy = BackoffStrategy::Exponential(Duration::from_millis(self.config.initial_backoff_ms));
 
         loop {
-            match self.execute_batch_internal(commands.clone(), ExecutionMode::Sync, needs_result) {
+            match self.execute_batch_internal(commands.clone(), needs_result) {
                 Ok(results) => {
                     if needs_result {
                         return Ok(Some(results));
@@ -166,7 +165,6 @@ impl BatchProcessor {
     fn execute_batch_internal(
         &self,
         commands: Vec<Box<dyn CommandBuilder>>,
-        mode: ExecutionMode,
         needs_result: bool,
     ) -> RedissonResult<Vec<BatchResult>> {
         if self.is_closed.load(Ordering::Acquire) {
@@ -527,7 +525,6 @@ impl BatchProcessor {
                 for batch in batches {
                     let result = processor.execute_batch_internal(
                         batch.commands,
-                        ExecutionMode::Async,
                         batch.callback.is_some(),
                     );
 
@@ -544,7 +541,6 @@ impl BatchProcessor {
             for batch in batches {
                 let result = self.execute_batch_internal(
                     batch.commands,
-                    ExecutionMode::Sync,
                     batch.callback.is_some(),
                 );
 
@@ -647,7 +643,7 @@ impl BatchProcessor {
     pub fn get_stats(&self) -> BatchStats {
         self.stats.read().clone()
     }
-    
+
     pub fn get_batch_config(&self) -> &BatchConfig {
         &self.config
     }

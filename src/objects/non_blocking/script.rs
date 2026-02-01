@@ -18,26 +18,21 @@
  *  *
  *  
  */
-use std::sync::Arc;
-use std::time::{Duration, SystemTime};
-use serde::de::DeserializeOwned;
-use serde::Serialize;
+use crate::{AsyncBaseDistributedObject, AsyncRFairLock, AsyncRLock, AsyncRLockable, AsyncRObject, AsyncRObjectBase, AsyncRedisConnectionManager, RedissonResult};
 use async_trait::async_trait;
-use uuid::Uuid;
-use crate::{RedissonResult, AsyncRedisConnectionManager, AsyncRedisConnection, AsyncBaseDistributedObject, AsyncRObject, AsyncRLockable, AsyncRLock, AsyncRFairLock, AsyncRObjectBase, AsyncRRateLimiter};
+use std::sync::Arc;
+use std::time::Duration;
 
 
 // === AsyncRScript Asynchronous script execution ===
 pub struct AsyncRScript {
     base: AsyncBaseDistributedObject,
-    script_name: String,
 }
 
 impl AsyncRScript {
     pub fn new(connection_manager: Arc<AsyncRedisConnectionManager>, name: String) -> Self {
         Self {
             base: AsyncBaseDistributedObject::new(connection_manager, name.to_string()),
-            script_name: name
         }
     }
 

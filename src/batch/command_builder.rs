@@ -40,6 +40,20 @@ pub trait CommandBuilder: Send + Sync {
 
     /// Get a list of keys (for caching key calculations)
     fn keys(&self) -> Vec<String>;
+
+    fn cmd_to_string(&self) -> String {
+        let cmd = self.build();
+        let mut parts = Vec::new();
+
+        // Get the command name
+        parts.push(self.command_name().to_uppercase());
+
+        // Add parameters
+        for arg in cmd.args_iter().skip(1) {
+            parts.push(format!("{:?}", arg));
+        }
+        parts.join(":")
+    }
 }
 
 impl Clone for Box<dyn CommandBuilder> {
@@ -50,6 +64,6 @@ impl Clone for Box<dyn CommandBuilder> {
 
 impl Debug for dyn CommandBuilder {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "CommandBuilder({})", self.command_name())
+        write!(f, "CommandBuilder({})", self.cmd_to_string())
     }
 }

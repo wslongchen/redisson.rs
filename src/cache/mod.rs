@@ -19,9 +19,12 @@
  *
  */
 mod blocking;
+#[cfg(feature = "async")]
 mod non_blocking;
 
+use std::mem;
 pub use blocking::*;
+#[cfg(feature = "async")]
 pub use non_blocking::*;
 
 
@@ -41,8 +44,10 @@ pub struct CacheEntryStats {
 }
 
 pub fn estimate_size<V: Serialize>(value: &V) -> usize {
-    // Simple size estimation
-    std::mem::size_of::<V>()
+    if let Ok(json) = serde_json::to_string(value) {
+        return json.len();
+    }
+    mem::size_of::<V>()
 }
 
 #[derive(Clone, Debug)]

@@ -19,14 +19,18 @@
  *  
  */
 mod blocking;
+#[cfg(feature = "async")]
 mod non_blocking;
+
+
+pub use blocking::*;
+#[cfg(feature = "async")]
+pub use non_blocking::*;
+
 
 use std::time::Duration;
 use redis::Value;
-use serde::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
-pub use blocking::*;
-pub use non_blocking::*;
 use crate::{BatchResult, RedissonError, RedissonResult};
 
 

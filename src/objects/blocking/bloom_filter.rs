@@ -22,7 +22,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use bloom::{BloomFilter, ASMS};
 use parking_lot::RwLock;
-use crate::{BaseDistributedObject, BloomFilterInfo, RAtomicLong, RLockable, RObject, RObjectBase, RedissonResult, SyncRedisConnectionManager};
+use crate::{BaseDistributedObject, BloomFilterInfo, RLockable, RObject, RObjectBase, RedissonResult, SyncRedisConnectionManager};
 
 // === RBloomFilter (Bloom filter)===
 pub struct RBloomFilter<V> {
@@ -239,20 +239,61 @@ impl<V: AsRef<[u8]>> RBloomFilter<V> {
 
     // Reset the local bloom filter (reload from Redis)
     pub fn reset_local_filter(&self) -> RedissonResult<()> {
-        // TODO: Note: This method will clear the local filter and require re-syncing the data from Redis
-        // In practice, this might require scanning all the data or using some other mechanism
-
-        // Simple implementation: Clear the local filter
-        {
+        // 1. First, get the bloom filter parameters from Redis
+        if let Some(info) = self.info()? {
+            // 2. Rebuild the local filter based on the actual parameters of Redis
             let mut bloom = self.bloom_filter.write();
-            // Getting the original parameters
-            let expected_insertions = bloom.num_bits() / 10; // ESTIMATION
-            let false_positive_rate = 0.01; // Default values
 
-            *bloom = BloomFilter::with_rate(false_positive_rate as f32, expected_insertions as u32);
+            // Reconstruction using actual parameters of Redis
+            *bloom = BloomFilter::with_rate(
+                self.calculate_error_rate(info.capacity, info.items_inserted),
+                info.capacity as u32
+            );
+
+            tracing::info!(
+            "Local bloom filter reset with Redis parameters: capacity={}, items_inserted={}",
+            info.capacity, info.items_inserted
+        );
+        } else {
+            // If no information is available, it is reconstructed with the default parameters
+            let mut bloom = self.bloom_filter.write();
+
+            // Keep the original number of bits and hash functions
+            let bits = bloom.num_bits();
+            let hash_functions = bloom.num_hashes();
+
+            // The same parameters are used for reconstruction
+            *bloom = BloomFilter::with_size(bits, hash_functions);
+
+            tracing::debug!(
+            "Local bloom filter reset with preserved parameters: bits={}, hash_functions={}",
+            bits, hash_functions
+        );
         }
 
         Ok(())
+    }
+
+    /// Calculate the error rate (based on capacity and number of inserted items)
+    fn calculate_error_rate(&self, capacity: usize, items_inserted: usize) -> f32 {
+        if capacity == 0 {
+            return 0.01; // Default error rate
+        }
+
+        // The error rate is estimated based on the fill rate
+        let fill_ratio = items_inserted as f32 / capacity as f32;
+
+        // Prevent overfitting: If the fill rate is too high, use a conservative error rate
+        if fill_ratio > 0.8 {
+            0.05 // A higher error rate is used when the fill rate is high
+        } else if fill_ratio < 0.1 {
+            0.01 // A lower error rate is used when the fill rate is low
+        } else {
+            // Linear interpolation
+            let base_rate = 0.01;
+            let max_rate = 0.05;
+            base_rate + (max_rate - base_rate) * (fill_ratio - 0.1) / 0.7
+        }
     }
 }
 

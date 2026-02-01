@@ -18,14 +18,13 @@
  *  *
  *
  */
+use crate::errors::RedissonError;
+use crate::{AsyncBaseDistributedObject, AsyncRObjectBase, AsyncRedisConnectionManager, PendingMessage, RedissonResult, StreamConsumer, StreamGroup, StreamInfo, StreamMessage};
+use futures::future::BoxFuture;
+use serde::{de::DeserializeOwned, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
-use serde::{Serialize, de::DeserializeOwned};
-use async_trait::async_trait;
-use futures::future::BoxFuture;
-use crate::{RedissonResult, AsyncRedisConnectionManager, AsyncRObjectBase, StreamMessage, StreamInfo, StreamGroup, StreamConsumer, AsyncBaseDistributedObject, PendingMessage};
-use crate::errors::RedissonError;
 
 // === AsyncRStream Asynchronous Stream implementation ===
 
@@ -86,7 +85,7 @@ impl<V: Serialize + DeserializeOwned + Clone + Send + Sync + 'static> AsyncRStre
 
         Ok(message_id)
     }
-    
+
     /// Adding messages asynchronously (automatically generating ids)
     pub async fn add_auto_id(&self, fields: &HashMap<String, V>) -> RedissonResult<String> {
         self.add("*", fields).await
