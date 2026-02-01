@@ -15,9 +15,6 @@
   <a href="https://docs.rs/redisson">
     <img src="https://docs.rs/redisson/badge.svg" alt="Documentation">
   </a>
-  <a href="https://github.com/wslongchen/redisson/actions">
-    <img src="https://github.com/wslongchen/redisson/actions/workflows/ci.yml/badge.svg" alt="CI Status">
-  </a>
   <a href="https://github.com/wslongchen/redisson/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License MIT">
   </a>
