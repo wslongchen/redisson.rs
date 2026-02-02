@@ -367,7 +367,7 @@ mod tests {
     use crate::{BatchConfig, GetCommand, SetCommand};
 
     fn create_test_client() -> RedissonClient {
-        let config = RedissonConfig::single_server("redis://127.0.0.1:6379")
+        let config = RedissonConfig::single_server("redis://172.16.8.16:6379")
             .with_pool_size(5);
         RedissonClient::new(config).unwrap()
     }

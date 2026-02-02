@@ -349,17 +349,17 @@ impl AsyncRBatchBuilder {
 mod tests {
     use std::sync::Arc;
     use super::*;
-    use tokio::runtime::Runtime;
-    use crate::AsyncBatchProcessor;
+    use crate::{AsyncBatchProcessor, AsyncRedissonClient, RedissonConfig};
 
-    fn create_test_async_processor() -> AsyncBatchProcessor {
-        todo!("Create an asynchronous connection manager for testing")
+    async fn create_test_async_processor() -> Arc<AsyncBatchProcessor> {
+        let config = RedissonConfig::single_server("redis://172.16.8.16:6379");
+        let client = AsyncRedissonClient::new(config).await.unwrap();
+        client.get_batch_processor().clone()
     }
 
     #[tokio::test]
     async fn test_async_batch_execute() {
-        let processor = create_test_async_processor();
-        let processor = Arc::new(processor);
+        let processor = create_test_async_processor().await;
 
         let mut batch = AsyncRBatch::new(processor.clone());
         batch.set("async:test:key1", "value1");
@@ -379,8 +379,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_async_batch_callback() {
-        let processor = create_test_async_processor();
-        let processor = Arc::new(processor);
+        let processor = create_test_async_processor().await;
 
         let (tx, rx) = tokio::sync::oneshot::channel();
 
@@ -402,8 +401,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_async_batch_retry() {
-        let processor = create_test_async_processor();
-        let processor = Arc::new(processor);
+        let processor = create_test_async_processor().await;
 
         let mut batch = AsyncRBatchBuilder::new(processor.clone())
             .set("async:retry:key1", "retry_value1")

@@ -42,7 +42,6 @@ pub struct AsyncRTopic<V> {
     listeners: Arc<RwLock<Vec<Arc<dyn AsyncMessageListener<V>>>>>,
     subscription_task: Arc<Mutex<Option<JoinHandle<()>>>>,
     is_subscribed: Arc<std::sync::atomic::AtomicBool>,
-    message_tx: Arc<Mutex<Option<mpsc::UnboundedSender<V>>>>,
 }
 
 impl<V> AsyncRTopic<V>
@@ -56,7 +55,6 @@ where
             listeners: Arc::new(RwLock::new(Vec::new())),
             subscription_task: Arc::new(Mutex::new(None)),
             is_subscribed: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            message_tx: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -558,10 +556,11 @@ mod tests {
     use crate::AsyncSyncRedisConnectionManager;
     use std::sync::atomic::{AtomicUsize, Ordering};
     use tokio::time::{sleep, Duration};
+    use tokio_stream::StreamExt;
 
     #[tokio::test]
     async fn test_topic_publish() -> RedissonResult<()> {
-        let config = RedissonConfig::single_server("redis://localhost:6379")
+        let config = RedissonConfig::single_server("redis://172.16.8.16:6379")
             .with_pool_size(3);
 
         let manager = AsyncSyncRedisConnectionManager::new(&config).await?;
@@ -583,9 +582,10 @@ mod tests {
         Ok(())
     }
 
+    #[allow(unused_comparisons)]
     #[tokio::test]
     async fn test_topic_simple_subscribe() -> RedissonResult<()> {
-        let config = RedissonConfig::single_server("redis://localhost:6379")
+        let config = RedissonConfig::single_server("redis://172.16.8.16:6379")
             .with_pool_size(3);
 
         let manager = AsyncSyncRedisConnectionManager::new(&config).await?;
@@ -626,7 +626,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_topic_stream() -> RedissonResult<()> {
-        let config = RedissonConfig::single_server("redis://localhost:6379")
+        let config = RedissonConfig::single_server("redis://172.16.8.16:6379")
             .with_pool_size(3);
 
         let manager = AsyncSyncRedisConnectionManager::new(&config).await?;

@@ -21,8 +21,7 @@
 use std::time::Duration;
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
-use tokio::runtime::Runtime;
-use redisson::{AsyncRedissonClient, BatchPriority, BatchResult, Cache, RedissonClient, RedissonConfig, RedissonResult, SetCommand};
+use redisson::{BatchResult, Cache, RedissonClient, RedissonConfig, RedissonResult, SetCommand};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct Order {
@@ -63,7 +62,7 @@ fn main() -> RedissonResult<()> {
     println!("=============================================\n");
 
     // 1. Create configuration
-    let config = RedissonConfig::single_server("redis://127.0.0.1:6379")
+    let config = RedissonConfig::single_server("redis://172.16.8.16:6379")
         .with_pool_size(20)
         .with_connection_timeout(Duration::from_secs(5))
         .with_response_timeout(Duration::from_secs(3))
@@ -92,10 +91,6 @@ fn main() -> RedissonResult<()> {
     // 6. Demonstrate performance statistics
     println!("\n📊 Performance Statistics");
     show_stats(&client)?;
-
-    // 7. Asynchronous example
-    println!("\n⚡ Asynchronous Operations Demo");
-    async_demo()?;
 
     println!("\n🎉 All demos completed!");
 
@@ -299,7 +294,7 @@ fn cache_integration_demo(client: &RedissonClient) -> RedissonResult<()> {
     println!("  4. Reading again (local cache)...");
     let start = std::time::Instant::now();
 
-    let cached_session2 = user_cache.get(&"user123".to_string())?;
+    let _cached_session2 = user_cache.get(&"user123".to_string())?;
     let second_duration = start.elapsed();
 
     println!("     ⚡ Second read duration: {:?}", second_duration);
@@ -349,43 +344,3 @@ fn show_stats(client: &RedissonClient) -> RedissonResult<()> {
 
     Ok(())
 }
-
-fn async_demo() -> RedissonResult<()> {
-    let rt = Runtime::new().unwrap();
-
-    rt.block_on(async {
-        println!("  1. Creating async client...");
-
-        let config = RedissonConfig::single_server("redis://127.0.0.1:6379");
-        let client = AsyncRedissonClient::new(config).await.unwrap();
-
-        println!("     ✅ Async client created successfully");
-
-        println!("  2. Async lock operations...");
-        let lock = client.get_lock("async:demo:lock");
-
-        lock.lock().await.unwrap();
-        println!("     🔒 Async lock acquired successfully");
-
-        // Simulate async operation
-        tokio::time::sleep(Duration::from_millis(100)).await;
-
-        lock.unlock().await.unwrap();
-        println!("     🔓 Async lock released successfully");
-
-        println!("  3. Async data operations...");
-        let bucket = client.get_bucket::<String>("async:demo:data");
-
-        bucket.set(&"Hello Async".to_string()).await.unwrap();
-        println!("     💾 Data set successfully");
-
-        let value = bucket.get().await.unwrap();
-        println!("     📖 Read data: {:?}", value);
-
-        client.shutdown().await.unwrap();
-        println!("     🔌 Async client closed");
-    });
-
-    Ok(())
-}
-

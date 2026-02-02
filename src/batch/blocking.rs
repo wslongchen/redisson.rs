@@ -135,7 +135,7 @@ impl BatchProcessor {
         max_retries: u32,
     ) -> RedissonResult<Option<Vec<BatchResult>>> {
         let mut retry_count = 0;
-        let backoff_strategy = BackoffStrategy::Exponential(Duration::from_millis(self.config.initial_backoff_ms));
+        let backoff_strategy = BackoffStrategy::new(&self.config.backoff_strategy.clone().unwrap_or_default(),Duration::from_millis(self.config.initial_backoff_ms));
 
         loop {
             match self.execute_batch_internal(commands.clone(), needs_result) {

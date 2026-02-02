@@ -23,7 +23,7 @@ use redisson::{AsyncRedissonClient, RedissonConfig, RedissonResult};
 #[tokio::main]
 async fn main() -> RedissonResult<()> {
     // 1. Create configuration
-    let config = RedissonConfig::single_server("redis://127.0.0.1:6379");
+    let config = RedissonConfig::single_server("redis://172.16.8.16:6379");
 
     // 2. Create async client
     let client = AsyncRedissonClient::new(config).await?;

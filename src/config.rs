@@ -80,7 +80,7 @@ pub struct RedissonConfig {
 impl Default for RedissonConfig {
     fn default() -> Self {
         Self {
-            connection_mode: ConnectionMode::SingleServer { url: "localhost:6379".to_string(), host: Some("localhost".to_string()), port: Some(6379) },
+            connection_mode: ConnectionMode::SingleServer { url: "".to_string(), host: Some("localhost".to_string()), port: Some(6379) },
             pool_size: 10,
             connection_timeout: Duration::from_secs(3),
             response_timeout: Duration::from_secs(3),
@@ -215,9 +215,23 @@ pub struct BatchConfig {
     pub max_queue_size: usize,
     pub enable_priority: bool,
     pub enable_async: bool,
+    pub backoff_strategy: Option<BackoffStrategyConfig>,
     pub initial_backoff_ms: u64,
     pub max_backoff_ms: u64,
     pub max_concurrent_batches: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum BackoffStrategyConfig {
+    Linear,
+    Exponential,
+    Fixed,
+}
+
+impl Default for BackoffStrategyConfig {
+    fn default() -> Self {
+        Self::Linear
+    }
 }
 
 impl Default for BatchConfig {
@@ -229,6 +243,7 @@ impl Default for BatchConfig {
             max_retries: 3,
             enable_cache: false,
             cache_size: 1000,
+            backoff_strategy: Some(BackoffStrategyConfig::Linear),
             cache_ttl: Duration::from_secs(300),
             enable_background_flush: false,
             max_queue_size: 10000,

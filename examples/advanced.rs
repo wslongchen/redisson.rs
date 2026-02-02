@@ -22,8 +22,7 @@
 use std::time::Duration;
 use std::thread;
 use serde::{Serialize, Deserialize};
-use tokio::runtime::Runtime;
-use redisson::{AsyncRedissonClient, BatchResult, RLockable, RedissonClient, RedissonConfig, RedissonError, RedissonResult};
+use redisson::{BatchResult, RLockable, RedissonClient, RedissonConfig, RedissonError, RedissonResult};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct User {
@@ -44,7 +43,7 @@ struct Product {
 
 fn main() -> RedissonResult<()> {
     // 1. Configure client
-    let config = RedissonConfig::single_server("redis://127.0.0.1:6379")
+    let config = RedissonConfig::single_server("redis://172.16.8.16:6379")
         .with_pool_size(20)
         .with_connection_timeout(Duration::from_secs(5))
         .with_response_timeout(Duration::from_secs(3))
@@ -79,9 +78,6 @@ fn main() -> RedissonResult<()> {
 
     // 9. Delayed queue example
     delayed_queue_example(&client)?;
-
-    // 10. Asynchronous operations example
-    async_example()?;
 
     println!("\n🎉 All examples executed successfully!");
 
@@ -467,7 +463,7 @@ fn pubsub_example(client: &RedissonClient) -> RedissonResult<()> {
     let subscriber_handle = thread::spawn(move || {
         println!("   👂 Subscriber started, waiting for messages...");
 
-        topic_clone.add_listener_fn(|channel, message| {
+        topic_clone.add_listener_fn(|_channel, message| {
             println!("   📩 Received message: {}", message);
         }).unwrap();
 
@@ -526,46 +522,6 @@ fn delayed_queue_example(client: &RedissonClient) -> RedissonResult<()> {
     }
 
     println!("   📊 Completed {} delayed tasks", completed_tasks);
-
-    Ok(())
-}
-
-fn async_example() -> RedissonResult<()> {
-    println!("\n⚡ Asynchronous Operations Example:");
-
-    // Use Tokio runtime for async execution
-    let rt = Runtime::new().unwrap();
-
-    rt.block_on(async {
-        let config = RedissonConfig::single_server("redis://127.0.0.1:6379");
-        let client = AsyncRedissonClient::new(config).await.unwrap();
-
-        println!("   ✅ Async client created successfully");
-
-        // Async lock
-        let lock = client.get_lock("async:test");
-        lock.lock().await.unwrap();
-        println!("   🔒 Async lock acquired successfully");
-
-        // Async data operations
-        let bucket = client.get_bucket::<String>("async:data");
-        bucket.set(&"Async value".to_string()).await.unwrap();
-
-        let value = bucket.get().await.unwrap();
-        println!("   📦 Async data: {:?}", value);
-
-        // Async atomic operation
-        let atomic = client.get_atomic_long("async:counter");
-        let count = atomic.increment_and_get().await.unwrap();
-        println!("   🔢 Async counter: {}", count);
-
-        lock.unlock().await.unwrap();
-        println!("   🔓 Async lock released successfully");
-
-        client.shutdown().await.unwrap();
-    });
-
-    println!("   ✅ Asynchronous operations example completed");
 
     Ok(())
 }

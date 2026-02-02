@@ -70,3 +70,17 @@ tokio = { version = "1.0", features = ["full"] }
 [[bench]]
 name = "redisson_benchmark"
 harness = false
+
+[[example]]
+name = "async_usage"
+path = "examples/async_usage.rs"
+required-features = ["async"]
+[[example]]
+name = "basic_usage"
+path = "examples/basic_usage.rs"
+[[example]]
+name = "advanced"
+path = "examples/advanced.rs"
+[[example]]
+name = "batch"
+path = "examples/batch.rs"

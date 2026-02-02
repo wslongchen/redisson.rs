@@ -23,14 +23,12 @@
 #[derive(Clone)]
 pub struct LockableObject {
     pub(crate) name: String,
-    pub(crate) lock_prefix: String,
 }
 
 impl LockableObject {
     pub fn new(name: String) -> Self {
         Self {
             name: name.clone(),
-            lock_prefix: format!("{}{}", name, ":lock"),
         }
     }
 

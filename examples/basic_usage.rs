@@ -23,7 +23,7 @@ use std::time::Duration;
 
 fn main() -> RedissonResult<()> {
     // 1. Create configuration
-    let config = RedissonConfig::single_server("redis://127.0.0.1:6379")
+    let config = RedissonConfig::single_server("redis://172.16.8.16:6379")
         .with_pool_size(20)
         .with_watchdog_timeout(Duration::from_secs(30));
 

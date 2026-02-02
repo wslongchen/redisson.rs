@@ -32,7 +32,7 @@ pub use command_builder::*;
 pub use non_blocking::*;
 
 
-use crate::{RedissonError, RedissonResult};
+use crate::{BackoffStrategyConfig, RedissonError, RedissonResult};
 use redis::{from_redis_value, Value};
 use serde::de::DeserializeOwned;
 use std::fmt::{Debug, Formatter};
@@ -154,6 +154,15 @@ enum BackoffStrategy {
 }
 
 impl BackoffStrategy {
+    
+    fn new(strategy: &BackoffStrategyConfig, backoff: Duration) -> Self {
+        match strategy {
+            BackoffStrategyConfig::Linear => BackoffStrategy::Linear(backoff),
+            BackoffStrategyConfig::Exponential => BackoffStrategy::Exponential(backoff),
+            BackoffStrategyConfig::Fixed => BackoffStrategy::Fixed(backoff),
+        }
+    }
+    
     fn calculate_delay(&self, retry_count: u32) -> Duration {
         match self {
             BackoffStrategy::Linear(base) => *base * retry_count,
